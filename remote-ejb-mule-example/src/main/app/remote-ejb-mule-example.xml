@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="CE-3.7.0"
+	xmlns:springjee="http://www.springframework.org/schema/jee" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<spring:beans profile="production">
+		<springjee:remote-slsb id="myComponent" jndi-name="ejb:/ejb-remote-server/ExampleServiceImpl!com.illucit.ejbremote.server.ExampleService"
+        business-interface="com.illucit.ejbremote.server.ExampleService">
+        	<springjee:environment>
+				java.naming.provider.url=http-remoting://127.0.0.1:8080
+				java.naming.factory.initial = org.jboss.naming.remote.client.InitialContextFactory
+				java.naming.factory.url.pkgs = org.jboss.ejb.client.naming
+				
+				jboss.naming.client.ejb.context=false
+				org.jboss.ejb.client.scoped.context=true
+				endpoint.name=client-endpoint
+			    remote.connectionprovider.create.options.org.xnio.Options.SSL_ENABLED=false
+			    remote.connections=default
+			    remote.connection.default.connect.options.org.xnio.Options.SASL_POLICY_NOANONYMOUS=false
+	            remote.connection.default.host=127.0.0.1
+			    remote.connection.default.port=8080
+				jnp.multi-threaded = true
+        	</springjee:environment>
+        </springjee:remote-slsb>
+	</spring:beans>
+	<spring:beans profile="test">
+		<spring:bean id="myComponent" class="com.illucit.ejbremote.server.ExampleServiceDummy" />
+		
+	</spring:beans>
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
+    <flow name="remote-ejb-mule-exampleFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/{name}" doc:name="HTTP"/>
+        <logger level="INFO" doc:name="Logger"/>
+        <set-payload value="#[message.inboundProperties.'http.uri.params'.name]" doc:name="Set Payload"/>
+        <component doc:name="Java">
+            <spring-object bean="myComponent"/>
+        </component>
+    </flow>
+
+    
+</mule>
